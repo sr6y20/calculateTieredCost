@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分段费用计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #34495e;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: #2980b9;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .result-value {
+            font-size: 32px;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .tiers {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .tier {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>分段费用计算器</h1>
+        
+        <div class="input-group">
+            <label for="cost">单次费用（元）</label>
+            <input type="number" id="cost" placeholder="请输入单次费用" step="0.1">
+            <div class="error" id="costError">请输入有效的费用金额</div>
+        </div>
+
+        <div class="input-group">
+            <label for="days">天数</label>
+            <input type="number" id="days" placeholder="请输入天数" min="1">
+            <div class="error" id="daysError">请输入有效的天数</div>
+        </div>
+
+        <button class="button" onclick="calculate()">计算费用</button>
+
+        <div class="result">
+            <div>总费用</div>
+            <div class="result-value" id="totalCost">0.0 元</div>
+        </div>
+
+        <div class="tiers">
+            <h3 style="margin-bottom: 15px; color: #2c3e50;">费用档位说明</h3>
+            <div class="tier">
+                <strong>第一档：</strong>0-80元（原价）
+            </div>
+            <div class="tier">
+                <strong>第二档：</strong>80-200元（超出80元部分8折）
+            </div>
+            <div class="tier">
+                <strong>第三档：</strong>200元以上（超出200元部分5折）
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const calculateTieredCost = (cost, days) => {
+            const TIERS = {
+                FIRST: { max: 80, discount: 1 },
+                SECOND: { max: 200, discount: 0.8 },
+                THIRD: { discount: 0.5 },
+            };
+
+            const addCost = (currentTotal, amount) => {
+                // TIERS.FIRST
+                if (currentTotal <= TIERS.FIRST.max) {
+                    const newTotal = currentTotal + amount;
+                    if (newTotal <= TIERS.FIRST.max) {
+                        return newTotal;
+                    }
+                    const excess = newTotal - TIERS.FIRST.max;
+                    return TIERS.FIRST.max + excess * TIERS.SECOND.discount;
+                }
+
+                // TIERS.SECOND
+                if (currentTotal <= TIERS.SECOND.max) {
+                    const newTotal = currentTotal + amount * TIERS.SECOND.discount;
+                    if (newTotal <= TIERS.SECOND.max) {
+                        return newTotal;
+                    }
+                    const excess = newTotal - TIERS.SECOND.max;
+                    return TIERS.SECOND.max + excess * TIERS.THIRD.discount;
+                }
+
+                // TIERS.THIRD
+                return currentTotal + amount * TIERS.THIRD.discount;
+            };
+
+            let total = 0;
+            const totalCharges = days * 2;
+
+            for (let i = 0; i < totalCharges; i++) {
+                total = addCost(total, cost);
+            }
+
+            return parseFloat(total.toFixed(1));
+        };
+
+        function calculate() {
+            const costInput = document.getElementById('cost');
+            const daysInput = document.getElementById('days');
+            const costError = document.getElementById('costError');
+            const daysError = document.getElementById('daysError');
+            const resultElement = document.getElementById('totalCost');
+
+            // 重置错误提示
+            costError.classList.remove('show');
+            daysError.classList.remove('show');
+
+            // 验证输入
+            const cost = parseFloat(costInput.value);
+            const days = parseInt(daysInput.value);
+
+            if (isNaN(cost) || cost <= 0) {
+                costError.classList.add('show');
+                return;
+            }
+
+            if (isNaN(days) || days <= 0) {
+                daysError.classList.add('show');
+                return;
+            }
+
+            // 计算并显示结果
+            const totalCost = calculateTieredCost(cost, days);
+            resultElement.textContent = `${totalCost.toFixed(1)} 元`;
+        }
+
+        // 添加回车键支持
+        document.getElementById('cost').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') calculate();
+        });
+        document.getElementById('days').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') calculate();
+        });
+    </script>
+</body>
+</html>
